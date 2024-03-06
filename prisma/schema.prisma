@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum QuestionType {
+  MCQ
+}
+
+model User {
+  id String @id @default(uuid())
+
+  fullName    String
+  phonenumber String   @unique
+  email       String   @unique
+  password    String
+  role        Role     @default(STUDENT)
+  createdAt   DateTime @default(now())
+
+  Courses                   Course[]
+  CourseSubscriptions       CourseSubscription[]
+  Questions                 Question[]
+  QuestionSubmissions       QuestionSubmission[]
+  ExamSubmission            ExamSubmission[]
+  CourseSubscriptionRequest CourseSubscriptionRequest[]
+}
+
+model Course {
+  id String @id @default(uuid())
+
+  ownerId   String
+  name      String
+  createdAt DateTime @default(now())
+
+  Owner                     User                        @relation(fields: [ownerId], references: [id])
+  CourseSubscriptions       CourseSubscription[]
+  Questions                 Question[]
+  Exams                     Exam[]
+  QuestionSubmissions       QuestionSubmission[]
+  ExamSubmission            ExamSubmission[]
+  CourseSubscriptionRequest CourseSubscriptionRequest[]
+}
+
+model CourseSubscription {
+  id String @id @default(uuid())
+
+  courseId     String
+  subscriberId String
+  createdAt    DateTime @default(now())
+
+  Course    Course @relation(fields: [courseId], references: [id])
+  Subsriber User   @relation(fields: [subscriberId], references: [id])
+}
+
+model CourseSubscriptionRequest {
+  id String @id @default(uuid())
+
+  courseId     String
+  subscriberId String
+  accepted     Boolean @default(false)
+  archive      Boolean @default(false)
+  deleted      Boolean @default(false)
+
+  Course    Course   @relation(fields: [courseId], references: [id])
+  Subsriber User     @relation(fields: [subscriberId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Exam {
+  id String @id @default(uuid())
+
+  courseId  String
+  available Boolean  @default(true)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  Questions           Question[]
+  Course              Course               @relation(fields: [courseId], references: [id])
+  QuestionSubmissions QuestionSubmission[]
+  ExamSubmission      ExamSubmission[]
+}
+
+model Question {
+  id String @id @default(uuid())
+
+  writerId String
+  examId   String
+  courseId String
+  text     String
+  type     QuestionType
+  answers  Int[]
+  options  String[]
+
+  Writer User   @relation(fields: [writerId], references: [id])
+  Course Course @relation(fields: [courseId], references: [id])
+  Exam   Exam   @relation(fields: [examId], references: [id])
+}
+
+model QuestionSubmission {
+  id String @id @default(uuid())
+
+  subscriberId String
+  courseId     String
+  examId       String
+  questionId   String
+  answers      Int[]
+  type         QuestionType
+  createdAt    DateTime     @default(now())
+
+  Subscriber User   @relation(fields: [subscriberId], references: [id])
+  Course     Course @relation(fields: [courseId], references: [id])
+  Exam       Exam   @relation(fields: [examId], references: [id])
+}
+
+model ExamSubmission {
+  id String @id @default(uuid())
+
+  subscriberId String
+  courseId     String
+  examId       String
+  submittedAt  DateTime
+  grade        Float
+
+  Subscriber User   @relation(fields: [subscriberId], references: [id])
+  Course     Course @relation(fields: [courseId], references: [id])
+  Exam       Exam   @relation(fields: [examId], references: [id])
+}
